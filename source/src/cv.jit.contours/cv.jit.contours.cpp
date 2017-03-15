@@ -40,7 +40,6 @@
 #include "max.jit.mop.h"
 #include "ext_dictobj.h"
 #include "opencv2/opencv.hpp"
-//#include "cv.jit.contour.flow.h" // currently not used
 
 #define CV_JIT_MAX_IDS 100
 
@@ -82,12 +81,10 @@ typedef struct _cv_contours
     double      min_size;
     long        parents_only;
     long        transform_mode;
-    long        enable_flow;
     
     long        color_stats_format; // 0 = rgb/argb, 1 = hsl, 2 = lab
 
     // storage
-    Mat             prev_src_gray;
     vector<Point2f> prev_centroids;
     vector<int>     prev_centroid_id;
     vector<double>  prev_area;
@@ -143,8 +140,6 @@ t_symbol *addr_rotmin;
 t_symbol *addr_ids;
 t_symbol *addr_contourpts;
 t_symbol *addr_minrect;
-t_symbol *addr_flow_r;
-t_symbol *addr_flow_theta;
 
 t_symbol *addr_r_mean;
 t_symbol *addr_g_mean;
@@ -236,7 +231,7 @@ string type2str(int type) {
 }
 
 
-void getStatsChar( const Mat src, const Mat sobel, const Mat flow, const Mat mask, const cv::Rect roi, vector<Stats>& _stats)
+void getStatsChar( const Mat src, const Mat sobel, const Mat mask, const cv::Rect roi, vector<Stats>& _stats)
 {
     //const int plane, T& min, T& max, T& varience
     
@@ -248,13 +243,9 @@ void getStatsChar( const Mat src, const Mat sobel, const Mat flow, const Mat mas
     }
 
     int nchans = src.channels();
-    int nstats = nchans + 3; // focus, flow(2)
-
-    int flow_test = !flow.empty();
+    int nstats = nchans + 1; // focus (removed flow)
     
     int focus = nchans;
-    int flowx = nchans+1;
-    int flowy = nchans+2;
     
     vector<Stats> stats( nstats );
     
@@ -264,7 +255,6 @@ void getStatsChar( const Mat src, const Mat sobel, const Mat flow, const Mat mas
     const uchar *mask_p = NULL;
     const uchar *src_p = NULL;
     const float *sobel_p = NULL;
-    const Point2f *flow_p = NULL;
     
     int row_start = roi.y;
     int row_end = roi.y + roi.height;
@@ -279,7 +269,6 @@ void getStatsChar( const Mat src, const Mat sobel, const Mat flow, const Mat mas
         // do type check above here, eventually would be nice to support float also
         src_p = src.ptr<uchar>(i);
         sobel_p = sobel.ptr<float>(i);
-        flow_p = flow.ptr<Point2f>(i);
 
         for( int j = col_start; j < col_end; ++j )
         {
@@ -313,27 +302,6 @@ void getStatsChar( const Mat src, const Mat sobel, const Mat flow, const Mat mas
                 
                 stats[focus].sum += sobel_p[j];
                 
-                
-                // flow
-                if( flow_test )
-                {
-                    if( flow_p[j].x < stats[flowx].min )
-                    stats[flowx].min = flow_p[j].x;
-                    
-                    if( flow_p[j].x > stats[flowx].max )
-                        stats[flowx].max = flow_p[j].x;
-                    
-                    stats[flowx].sum += flow_p[j].x;
-                    
-                    if( flow_p[j].y < stats[flowy].min )
-                        stats[flowy].min = flow_p[j].y;
-                    
-                    if( flow_p[j].y > stats[flowy].max )
-                        stats[flowy].max = flow_p[j].y;
-                    
-                    stats[flowy].sum += flow_p[j].y;
-                    
-                }
             }
             
         }
@@ -347,8 +315,6 @@ void getStatsChar( const Mat src, const Mat sobel, const Mat flow, const Mat mas
     }
     
     stats[focus].mean = stats[focus].sum / size;
-    stats[flowx].mean = stats[flowx].sum / size;
-    stats[flowy].mean = stats[flowy].sum / size;
     
     int row, col;
     for( int i = 0; i < size; ++i )
@@ -358,7 +324,6 @@ void getStatsChar( const Mat src, const Mat sobel, const Mat flow, const Mat mas
         
         src_p = src.ptr<uchar>(row);
         sobel_p = sobel.ptr<float>(row);
-        flow_p = flow.ptr<Point2f>(row);
         
         for( int c = 0; c < nchans; ++c)
         {
@@ -369,15 +334,6 @@ void getStatsChar( const Mat src, const Mat sobel, const Mat flow, const Mat mas
         double dx = sobel_p[ col ] - stats[focus].mean;
         stats[focus].dev_sum += (dx*dx);
         
-        // flow
-        if( flow_test )
-        {
-            dx = flow_p[ col ].x - stats[flowx].mean;
-            stats[flowx].dev_sum += (dx*dx);
-            
-            dx = flow_p[ col ].y - stats[flowy].mean;
-            stats[flowy].dev_sum += (dx*dx);
-        }
     }
     
     for( int c = 0; c < nchans; ++c)
@@ -386,8 +342,6 @@ void getStatsChar( const Mat src, const Mat sobel, const Mat flow, const Mat mas
     }
     
     stats[focus].variance = stats[focus].dev_sum / size;
-    stats[flowx].variance = stats[flowx].dev_sum / size;
-    stats[flowy].variance = stats[flowy].dev_sum / size;
 
     _stats = stats;
 
@@ -506,17 +460,6 @@ static void cv_contours_dict_out(t_cv_contours *x, Mat frame)
         
         findContours( threshold_output, contours, hierarchy, CV_RETR_CCOMP, CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0) );
     }
-
-    Mat flow;
-    if( x->enable_flow && !x->prev_src_gray.empty() && x->prev_src_gray.size() == src_gray.size() )
-    {
-        
-//        float start = (float)getTickCount();
-        calcOpticalFlowFarneback( x->prev_src_gray, src_gray, flow, 0.1, 1, 15, 1, 5, 1.1, 0);
-//        printf("calcOpticalFlowSF : %lf sec\n", (getTickCount() - start) / getTickFrequency());
-
-    }
-    src_gray.copyTo(x->prev_src_gray);
     
     // focus measurement via sobel
     Mat sob;
@@ -556,9 +499,6 @@ static void cv_contours_dict_out(t_cv_contours *x, Mat frame)
 
     t_atomarray *defect_count = atomarray_new(0, NULL);
     t_atomarray *defect_dist_sum = atomarray_new(0, NULL);
-
-    t_atomarray *flow_r = atomarray_new(0, NULL);
-    t_atomarray *flow_theta = atomarray_new(0, NULL);
 
 	Vector<t_atomarray *> channel_means(n_src_channels);
     Vector<t_atomarray *> channel_var(n_src_channels);
@@ -615,7 +555,7 @@ static void cv_contours_dict_out(t_cv_contours *x, Mat frame)
         drawContours(contour_mask, contours, i, Scalar(255), CV_FILLED);
         
         vector<Stats> stats;
-        getStatsChar(src_color_sized, sob, flow, contour_mask, boundRect, stats);
+        getStatsChar(src_color_sized, sob, contour_mask, boundRect, stats);
         
         /*
          printf("stats: \n");
@@ -639,20 +579,6 @@ static void cv_contours_dict_out(t_cv_contours *x, Mat frame)
             atomarray_appendatom(channel_var[ch], &at);
         }
 
-        
-        if( x->enable_flow )
-        {
-            double flx, fly;
-            flx = stats[n_src_channels+1].mean / src_width;
-            fly = -1. * stats[n_src_channels+2].mean / src_height;
-            
-            atom_setfloat(&at, sqrt(flx*flx + fly*fly) );
-            atomarray_appendatom(flow_r, &at);
-            
-            atom_setfloat(&at, atan2(fly, flx) );
-            atomarray_appendatom(flow_theta, &at);
-            
-        }
         
         atom_setfloat(&at, stats[n_src_channels].variance );
         atomarray_appendatom(focus, &at);
@@ -1064,8 +990,6 @@ static void cv_contours_dict_out(t_cv_contours *x, Mat frame)
             break;
     }
 
-    dictionary_appendatomarray(cv_dict, addr_flow_r, (t_object *)flow_r);
-    dictionary_appendatomarray(cv_dict, addr_flow_theta, (t_object *)flow_theta);
     dictionary_appenddictionary(cv_dict, addr_contourpts, (t_object *)contour_dict);
     
     
@@ -1230,7 +1154,6 @@ void *cv_contours_new(t_symbol *s, long argc, t_atom *argv)
         
         x->matrix = NULL;
         x->debug_matrix = 0;
-        x->enable_flow = 0;
         
         x->erosion_size = 0;
         x->dilation_size = 0;
@@ -1325,9 +1248,6 @@ void ext_main(void* unused)
     CLASS_ATTR_LONG(c, "parents_only", 0, t_cv_contours, parents_only);
     CLASS_ATTR_STYLE_LABEL(c, "parents_only", 0, "onoff", "supress child contours");
     
-    CLASS_ATTR_LONG(c, "optical_flow", 0, t_cv_contours, enable_flow);
-    CLASS_ATTR_STYLE_LABEL(c, "optical_flow", 0, "onoff", "optical flow on/off");
-    
     CLASS_ATTR_DOUBLE(c, "max_size", 0, t_cv_contours, max_size);
     CLASS_ATTR_FILTER_MIN(c, "max_size", 0);
     CLASS_ATTR_FILTER_MAX(c, "max_size", 1);
@@ -1382,8 +1302,6 @@ void ext_main(void* unused)
     addr_minrect = gensym("/minrect");
     addr_ids = gensym("/ids");
     addr_idx = gensym("/index");
-    addr_flow_r = gensym("/flow/r");
-    addr_flow_theta = gensym("/flow/theta");
     addr_contourpts = gensym("/contour/pts");
     
     addr_r_mean = gensym("/pix/r/mean");
