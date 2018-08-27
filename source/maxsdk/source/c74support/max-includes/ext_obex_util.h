@@ -11,8 +11,10 @@
 BEGIN_USING_C_LINKAGE
 
 // symbol macros which may be swapped to use common symbol pointers for performance
+#ifndef USESYM
 #define USESYM(x)	gensym(#x)
 //#define USESYM(x)	_sym_##x
+#endif
 
 // macros for attributes
 // class attributes are almost universally attr_offset, except for class static attributes
@@ -66,16 +68,7 @@ BEGIN_USING_C_LINKAGE
 			class_addattr((c),attr_offset_new(attrname,USESYM(atom_long),(flags),(method)0L,(method)0L,calcoffset(structname,structmember))); \
 		}
 
-/**
-	Create a t_int32 integer attribute and add it to a Max class.
-
-	@ingroup	attr
-	@param	c				The class pointer.
-	@param	attrname		The name of this attribute as a C-string.
-	@param	flags			Any flags you wish to declare for this attribute, as defined in #e_max_attrflags.
-	@param	structname		The C identifier for the struct (containing a valid #t_object header) representing an instance of this class.
-	@param	structmember	The C identifier of the member in the struct that holds the value of this attribute.
-*/
+// “int32” attribute types are not supported for user facing attributes
 
 #define CLASS_ATTR_INT32(c,attrname,flags,structname,structmember) \
 		{		\
@@ -724,185 +717,23 @@ BEGIN_USING_C_LINKAGE
 
 
 // class static variants
+// these are unused in any c74 code
 #define STATIC_ATTR_ATOMS	class_addattr_atoms
 #define STATIC_ATTR_PARSE	class_addattr_parse
 #define STATIC_ATTR_FORMAT	class_addattr_format
-
-
-/**
-	Create a shared (static/global) char attribute and add it to a Max class.
-
-	@ingroup	attr
-	@param	c				The class pointer.
-	@param	attrname		The name of this attribute as a C-string.
-	@param	flags			Any flags you wish to declare for this attribute, as defined in #e_max_attrflags.
-	@param	val				Pointer to the value.
-*/
 #define STATIC_ATTR_CHAR(c,attrname,flags,val)		STATIC_ATTR_FORMAT(c,attrname,USESYM(char),flags,"c",val)
-
-
-/**
-	Create a shared (static/global) long integer attribute and add it to a Max class.
-
-	@ingroup	attr
-	@param	c				The class pointer.
-	@param	attrname		The name of this attribute as a C-string.
-	@param	flags			Any flags you wish to declare for this attribute, as defined in #e_max_attrflags.
-	@param	val				Pointer to the value.
-*/
 #define STATIC_ATTR_LONG(c,attrname,flags,val)		STATIC_ATTR_FORMAT(c,attrname,USESYM(long),flags,"l",val)
-
-
-/**
-	Create a shared (static/global) 32bit float attribute and add it to a Max class.
-
-	@ingroup	attr
-	@param	c				The class pointer.
-	@param	attrname		The name of this attribute as a C-string.
-	@param	flags			Any flags you wish to declare for this attribute, as defined in #e_max_attrflags.
-	@param	val				Pointer to the value.
-*/
 #define STATIC_ATTR_FLOAT(c,attrname,flags,val)		STATIC_ATTR_FORMAT(c,attrname,USESYM(float32),flags,"f",val)
-
-
-/**
-	Create a shared (static/global) 64bit float attribute and add it to a Max class.
-
-	@ingroup	attr
-	@param	c				The class pointer.
-	@param	attrname		The name of this attribute as a C-string.
-	@param	flags			Any flags you wish to declare for this attribute, as defined in #e_max_attrflags.
-	@param	val				Pointer to the value.
-*/
 #define STATIC_ATTR_DOUBLE(c,attrname,flags,val)	STATIC_ATTR_FORMAT(c,attrname,USESYM(float64),flags,"d",val)
-
-
-/**
-	Create a shared (static/global) #t_symbol* attribute and add it to a Max class.
-
-	@ingroup	attr
-	@param	c				The class pointer.
-	@param	attrname		The name of this attribute as a C-string.
-	@param	flags			Any flags you wish to declare for this attribute, as defined in #e_max_attrflags.
-	@param	val				Pointer to the value.
-*/
 #define STATIC_ATTR_SYM(c,attrname,flags,val)		STATIC_ATTR_FORMAT(c,attrname,USESYM(symbol),flags,"s",val)
-
-
-/**
-	Create a shared (static/global) #t_atom attribute and add it to a Max class.
-
-	@ingroup	attr
-	@param	c				The class pointer.
-	@param	attrname		The name of this attribute as a C-string.
-	@param	flags			Any flags you wish to declare for this attribute, as defined in #e_max_attrflags.
-	@param	val				Pointer to the value.
-*/
 #define STATIC_ATTR_ATOM(c,attrname,flags,val)		STATIC_ATTR_FORMAT(c,attrname,USESYM(atom),flags,"a",val)
-
-
-/**
-	Create a shared (static/global) #t_object* attribute and add it to a Max class.
-
-	@ingroup	attr
-	@param	c				The class pointer.
-	@param	attrname		The name of this attribute as a C-string.
-	@param	flags			Any flags you wish to declare for this attribute, as defined in #e_max_attrflags.
-	@param	val				Pointer to the value.
-*/
 #define STATIC_ATTR_OBJ(c,attrname,flags,val)		STATIC_ATTR_FORMAT(c,attrname,USESYM(object),flags,"o",val)
-
-
-
-
-/**
-	Create a shared (static/global) array-of-chars attribute of fixed length, and add it to a Max class.
-
-	@ingroup	attr
-	@param	c				The class pointer.
-	@param	attrname		The name of this attribute as a C-string.
-	@param	flags			Any flags you wish to declare for this attribute, as defined in #e_max_attrflags.
-	@param	count			The number of items in the char array.
-	@param	vals			Pointer to the values.
-*/
 #define STATIC_ATTR_CHAR_ARRAY(c,attrname,flags,count,vals)		STATIC_ATTR_FORMAT(c,attrname,USESYM(char),flags,"C",count,vals)
-
-
-/**
-	Create a shared (static/global) array-of-long-integers attribute of fixed length, and add it to a Max class.
-
-	@ingroup	attr
-	@param	c				The class pointer.
-	@param	attrname		The name of this attribute as a C-string.
-	@param	flags			Any flags you wish to declare for this attribute, as defined in #e_max_attrflags.
-	@param	count			The number of items in the long array.
-	@param	vals			Pointer to the values.
-*/
 #define STATIC_ATTR_LONG_ARRAY(c,attrname,flags,count,vals)		STATIC_ATTR_FORMAT(c,attrname,USESYM(long),flags,"L",count,vals)
-
-
-/**
-	Create a shared (static/global) array-of-32bit-floats attribute of fixed length, and add it to a Max class.
-
-	@ingroup	attr
-	@param	c				The class pointer.
-	@param	attrname		The name of this attribute as a C-string.
-	@param	flags			Any flags you wish to declare for this attribute, as defined in #e_max_attrflags.
-	@param	count			The number of items in the float array.
-	@param	vals			Pointer to the values.
-*/
 #define STATIC_ATTR_FLOAT_ARRAY(c,attrname,flags,count,vals)	STATIC_ATTR_FORMAT(c,attrname,USESYM(float32),flags,"F",count,vals)
-
-
-/**
-	Create a shared (static/global) array-of-64bit-floats attribute of fixed length, and add it to a Max class.
-
-	@ingroup	attr
-	@param	c				The class pointer.
-	@param	attrname		The name of this attribute as a C-string.
-	@param	flags			Any flags you wish to declare for this attribute, as defined in #e_max_attrflags.
-	@param	count			The number of items in the double array.
-	@param	vals			Pointer to the values.
-*/
 #define STATIC_ATTR_DOUBLE_ARRAY(c,attrname,flags,count,vals)	STATIC_ATTR_FORMAT(c,attrname,USESYM(float64),flags,"D",count,vals)
-
-
-/**
-	Create a shared (static/global) array-of-symbols attribute of fixed length, and add it to a Max class.
-
-	@ingroup	attr
-	@param	c				The class pointer.
-	@param	attrname		The name of this attribute as a C-string.
-	@param	flags			Any flags you wish to declare for this attribute, as defined in #e_max_attrflags.
-	@param	count			The number of items in the #t_symbol* array.
-	@param	vals			Pointer to the values.
-*/
 #define STATIC_ATTR_SYM_ARRAY(c,attrname,flags,count,vals)		STATIC_ATTR_FORMAT(c,attrname,USESYM(symbol),flags,"S",count,vals)
-
-
-/**
-	Create a shared (static/global) array-of-atoms attribute of fixed length, and add it to a Max class.
-
-	@ingroup	attr
-	@param	c				The class pointer.
-	@param	attrname		The name of this attribute as a C-string.
-	@param	flags			Any flags you wish to declare for this attribute, as defined in #e_max_attrflags.
-	@param	count			The number of items in the #t_atom array.
-	@param	vals			Pointer to the values.
-*/
 #define STATIC_ATTR_ATOM_ARRAY									STATIC_ATTR_ATOMS  // these are really the same, included for consistency
-
-
-/**
-	Create a shared (static/global) array-of-objects attribute of fixed length, and add it to a Max class.
-
-	@ingroup	attr
-	@param	c				The class pointer.
-	@param	attrname		The name of this attribute as a C-string.
-	@param	flags			Any flags you wish to declare for this attribute, as defined in #e_max_attrflags.
-	@param	count			The number of items in the #t_object* array.
-	@param	vals			Pointer to the values.
-*/
 #define STATIC_ATTR_OBJ_ARRAY(c,attrname,flags,count,vals)		STATIC_ATTR_FORMAT(c,attrname,USESYM(object),flags,"O",count,vals)
 
 
