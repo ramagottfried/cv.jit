@@ -231,6 +231,13 @@ string type2str(int type) {
 }
 
 
+t_atomarray *cv_jit_contours_atomarrayNew()
+{
+    t_atomarray *atar = atomarray_new(0, NULL);
+    atomarray_flags(atar, ATOMARRAY_FLAG_FREECHILDREN );
+    return atar;
+}
+
 void getStatsChar( const Mat src, const Mat sobel, const Mat mask, const cv::Rect roi, vector<Stats>& _stats)
 {
     //const int plane, T& min, T& max, T& varience
@@ -471,42 +478,42 @@ static void cv_contours_dict_out(t_cv_contours *x, Mat frame)
     t_dictionary *cv_dict = dictionary_new();
     cv_dict = dictobj_register(cv_dict, &x->dict_name);
     
-    t_atomarray *srcdim = atomarray_new(0, NULL);
+    t_atomarray *srcdim = cv_jit_contours_atomarrayNew();
     
-    t_atomarray *contour_count = atomarray_new(0, NULL);
-    t_atomarray *cx = atomarray_new(0, NULL);
-    t_atomarray *cy = atomarray_new(0, NULL);
-    t_atomarray *sx = atomarray_new(0, NULL);
-    t_atomarray *sy = atomarray_new(0, NULL);
+    t_atomarray *contour_count = cv_jit_contours_atomarrayNew();
+    t_atomarray *cx = cv_jit_contours_atomarrayNew();
+    t_atomarray *cy = cv_jit_contours_atomarrayNew();
+    t_atomarray *sx = cv_jit_contours_atomarrayNew();
+    t_atomarray *sy = cv_jit_contours_atomarrayNew();
     
-    t_atomarray *centroidx = atomarray_new(0, NULL);
-    t_atomarray *centroidy = atomarray_new(0, NULL);
+    t_atomarray *centroidx = cv_jit_contours_atomarrayNew();
+    t_atomarray *centroidy = cv_jit_contours_atomarrayNew();
     
-    t_atomarray *parimeter = atomarray_new(0, NULL);
-    t_atomarray *angle = atomarray_new(0, NULL);
-    t_atomarray *eccentricity = atomarray_new(0, NULL);
-    t_atomarray *rotmin = atomarray_new(0, NULL);
-    t_atomarray *rotmaj = atomarray_new(0, NULL);
+    t_atomarray *parimeter = cv_jit_contours_atomarrayNew();
+    t_atomarray *angle = cv_jit_contours_atomarrayNew();
+    t_atomarray *eccentricity = cv_jit_contours_atomarrayNew();
+    t_atomarray *rotmin = cv_jit_contours_atomarrayNew();
+    t_atomarray *rotmaj = cv_jit_contours_atomarrayNew();
     
-    t_atomarray *area = atomarray_new(0, NULL);
-    t_atomarray *child_of = atomarray_new(0, NULL);
+    t_atomarray *area = cv_jit_contours_atomarrayNew();
+    t_atomarray *child_of = cv_jit_contours_atomarrayNew();
 
-    t_atomarray *focus = atomarray_new(0, NULL);
+    t_atomarray *focus = cv_jit_contours_atomarrayNew();
     
-    t_atomarray *convex = atomarray_new(0, NULL);
-    t_atomarray *hull_count = atomarray_new(0, NULL);
-    t_atomarray *hullarea = atomarray_new(0, NULL);
+    t_atomarray *convex = cv_jit_contours_atomarrayNew();
+    t_atomarray *hull_count = cv_jit_contours_atomarrayNew();
+    t_atomarray *hullarea = cv_jit_contours_atomarrayNew();
 
-    t_atomarray *defect_count = atomarray_new(0, NULL);
-    t_atomarray *defect_dist_sum = atomarray_new(0, NULL);
+    t_atomarray *defect_count = cv_jit_contours_atomarrayNew();
+    t_atomarray *defect_dist_sum = cv_jit_contours_atomarrayNew();
 
 	Vector<t_atomarray *> channel_means(n_src_channels);
     Vector<t_atomarray *> channel_var(n_src_channels);
 
     for( int ch = 0; ch < n_src_channels; ++ch )
     {
-        channel_means[ch] = atomarray_new(0, NULL);
-        channel_var[ch] = atomarray_new(0, NULL);
+        channel_means[ch] = cv_jit_contours_atomarrayNew();
+        channel_var[ch] = cv_jit_contours_atomarrayNew();
 
     }
     
@@ -597,8 +604,8 @@ static void cv_contours_dict_out(t_cv_contours *x, Mat frame)
         
 
         t_dictionary *minrect_pts_sub = dictionary_new();
-        t_atomarray *minr_ptx = atomarray_new(0, NULL);
-        t_atomarray *minr_pty = atomarray_new(0, NULL);
+        t_atomarray *minr_ptx = cv_jit_contours_atomarrayNew();
+        t_atomarray *minr_pty = cv_jit_contours_atomarrayNew();
         
         Point2f pts[4];
         minRect.points( pts );
@@ -651,7 +658,7 @@ static void cv_contours_dict_out(t_cv_contours *x, Mat frame)
         // Hu momemnts
         double hu[7];
         HuMoments(moms, hu);
-        t_atomarray *hu_ar = atomarray_new(0, NULL);
+        t_atomarray *hu_ar = cv_jit_contours_atomarrayNew();
         
         for( long hidx = 0; hidx < 7; hidx++ )
         {
@@ -720,8 +727,8 @@ static void cv_contours_dict_out(t_cv_contours *x, Mat frame)
             convexityDefects( contours[i], hullI, defects );
         
         t_dictionary *hullpts = dictionary_new();
-        t_atomarray *hull_x = atomarray_new(0, NULL);
-        t_atomarray *hull_y = atomarray_new(0, NULL);
+        t_atomarray *hull_x = cv_jit_contours_atomarrayNew();
+        t_atomarray *hull_y = cv_jit_contours_atomarrayNew();
 
         for( long hpi = 0; hpi < hullI_size; hpi++ )
         {
@@ -751,14 +758,14 @@ static void cv_contours_dict_out(t_cv_contours *x, Mat frame)
         
 
         t_dictionary *defectpts = dictionary_new();
-        t_atomarray *defect_x = atomarray_new(0, NULL);
-        t_atomarray *defect_y = atomarray_new(0, NULL);
-        t_atomarray *defect_depth = atomarray_new(0, NULL);
-
-        t_atomarray *defect_startx = atomarray_new(0, NULL);
-        t_atomarray *defect_starty = atomarray_new(0, NULL);
-        t_atomarray *defect_endx = atomarray_new(0, NULL);
-        t_atomarray *defect_endy = atomarray_new(0, NULL);
+    
+        t_atomarray *defect_x = cv_jit_contours_atomarrayNew();
+        t_atomarray *defect_y = cv_jit_contours_atomarrayNew();
+        t_atomarray *defect_depth = cv_jit_contours_atomarrayNew();
+        t_atomarray *defect_startx = cv_jit_contours_atomarrayNew();
+        t_atomarray *defect_starty = cv_jit_contours_atomarrayNew();
+        t_atomarray *defect_endx = cv_jit_contours_atomarrayNew();
+        t_atomarray *defect_endy = cv_jit_contours_atomarrayNew();
         
         double dist_sum = 0;
         vector<double> defect_dist;
@@ -818,7 +825,7 @@ static void cv_contours_dict_out(t_cv_contours *x, Mat frame)
 
     }
 
-    t_atomarray *idlist = atomarray_new(0, NULL);
+    t_atomarray *idlist = cv_jit_contours_atomarrayNew();
     if( x->prev_centroids.size() == 0 )
     {
         vector<int> new_ids( centroids.size(), -1 );
