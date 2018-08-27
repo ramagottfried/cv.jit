@@ -475,6 +475,11 @@ static void cv_contours_dict_out(t_cv_contours *x, Mat frame)
     vector<Point2f> centroids;
     centroids.reserve( contours.size() );
     
+//    src_gray.release();
+//    src_blur_gray.release();
+//    src_color_sized.release();
+
+    
     t_dictionary *cv_dict = dictionary_new();
     cv_dict = dictobj_register(cv_dict, &x->dict_name);
     
@@ -534,7 +539,7 @@ static void cv_contours_dict_out(t_cv_contours *x, Mat frame)
     char buf[256];
     
     t_dictionary *contour_dict = dictionary_new();
-    t_dictionary *hu_moments = dictionary_new();
+//    t_dictionary *hu_moments = dictionary_new();
 
     long ncontours = contours.size();
     
@@ -1006,6 +1011,10 @@ static void cv_contours_dict_out(t_cv_contours *x, Mat frame)
     object_free(cv_dict);
     // maybe should instead just have one dictionary that gets reused instead of creating a new one everytime
     
+    src_gray.release();
+    src_blur_gray.release();
+    src_color_sized.release();
+
     
     if( x->debug_matrix && x->matrix )
     {
@@ -1037,7 +1046,6 @@ void cv_contours_jit_matrix(t_cv_contours *x, t_symbol *s, long argc, t_atom *ar
             if (!in_bp)
             {
                 jit_error_sym( x, _jit_sym_err_calculate );
-                jit_object_method( matrix, _jit_sym_lock, in_savelock);
                 goto out;
             }
             
@@ -1068,15 +1076,16 @@ void cv_contours_jit_matrix(t_cv_contours *x, t_symbol *s, long argc, t_atom *ar
             
             cv::Mat frame( (int)in_minfo.dim[1], (int)in_minfo.dim[0], type, in_bp, in_minfo.dimstride[1] );
             cv_contours_dict_out(x, frame);
-            
         }
         else
         {
             jit_error_sym(x, _jit_sym_err_calculate);
         }
+        
+    out:
+        jit_object_method(matrix,_jit_sym_lock, in_savelock);
+
     }
-out:
-    jit_object_method(matrix,_jit_sym_lock, in_savelock);
     return;
 }
 
@@ -1182,6 +1191,10 @@ void *cv_contours_new(t_symbol *s, long argc, t_atom *argv)
         {
             x->id_used[i] = 0;
         }
+        
+        attr_args_process(x, argc, argv);
+
+        /*
         t_dictionary *d = NULL;
         d = dictionary_new();
         
@@ -1190,6 +1203,7 @@ void *cv_contours_new(t_symbol *s, long argc, t_atom *argv)
             attr_dictionary_process(x, d);
             object_free(d);
         }
+        */
         
         if( x->debug_matrix )
         {
